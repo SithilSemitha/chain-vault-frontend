@@ -1,0 +1,79 @@
+*, *::before, *::after {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+:root {
+  --cv-bg: #0a0c10;
+  --cv-surface: #111418;
+  --cv-card: #161b22;
+  --cv-card-hover: #1c2129;
+  --cv-border: #21262d;
+  --cv-border-hover: #30363d;
+  --cv-accent: #00e5a0;
+  --cv-accent-dim: rgba(0, 229, 160, 0.08);
+  --cv-accent-border: rgba(0, 229, 160, 0.2);
+  --cv-purple: #7c3aed;
+  --cv-purple-dim: rgba(124, 58, 237, 0.12);
+  --cv-warn: #f59e0b;
+  --cv-danger: #ef4444;
+  --cv-success: #00e5a0;
+  --cv-text: #e6edf3;
+  --cv-muted: #7d8590;
+  --cv-muted2: #4d5561;
+  --cv-mono: 'Space Mono', monospace;
+  --cv-sans: 'Sora', sans-serif;
+}
+
+html, body, #root {
+  height: 100%;
+  background: var(--cv-bg);
+  color: var(--cv-text);
+  font-family: var(--cv-sans);
+  -webkit-font-smoothing: antialiased;
+}
+
+button {
+  cursor: pointer;
+  font-family: var(--cv-sans);
+  border: none;
+  outline: none;
+}
+
+input, select, textarea {
+  font-family: var(--cv-sans);
+  outline: none;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+@keyframes pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.35; }
+}
+
+@keyframes fadeSlideUp {
+  from { opacity: 0; transform: translateY(16px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+
+@keyframes shimmer {
+  0%   { background-position: -200% 0; }
+  100% { background-position: 200% 0; }
+}
+
+.animate-in {
+  animation: fadeSlideUp 0.35s ease both;
+}
+
+.fade-in {
+  animation: fadeIn 0.25s ease both;
+}
