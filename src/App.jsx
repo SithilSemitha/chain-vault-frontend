@@ -1,29 +1,53 @@
-import { useState } from 'react';
-import LandingScreen    from './components/LandingScreen';
-import WalletScreen     from './components/WalletScreen';
+import { useState, useEffect } from 'react';
+import { getCurrentUser, getUserVaults, createVault, initializeCollections } from './services/firebaseService';
+import LandingScreen from './components/LandingScreen';
+import WalletScreen from './components/WalletScreen';
 import ConnectingScreen from './components/ConnectingScreen';
-import DashboardScreen  from './components/DashboardScreen';
-import AddAssetScreen   from './components/AddAssetScreen';
+import DashboardScreen from './components/DashboardScreen';
+import AddAssetScreen from './components/AddAssetScreen';
 import BeneficiaryScreen from './components/BeneficiaryScreen';
-import TxSuccessScreen  from './components/TxSuccessScreen';
+import TxSuccessScreen from './components/TxSuccessScreen';
 
 export default function App() {
-  const [screen, setScreen]       = useState('landing');
+  const [screen, setScreen] = useState('landing');
   const [walletName, setWalletName] = useState('');
   const [lastTxAction, setLastTxAction] = useState('');
-  const [assets, setAssets] = useState([
-    { id: 1, sym: 'BTC', name: 'Bitcoin',         amount: '0.42 BTC',   usd: '$31,200', pct: '+2.4%', up: true,  bg: 'rgba(247,147,26,.15)', color: '#f7931a' },
-    { id: 2, sym: 'ETH', name: 'Ethereum',         amount: '4.80 ETH',   usd: '$14,400', pct: '-0.8%', up: false, bg: 'rgba(98,126,234,.15)',  color: '#627eea' },
-    { id: 3, sym: 'NFT', name: 'CryptoPunk #3892', amount: 'ERC-721 · 1',usd: '$2,650',  pct: '+5.1%', up: true,  bg: 'rgba(0,229,160,.1)',   color: '#00e5a0' },
-  ]);
+  const [user, setUser] = useState(null);
+  const [vault, setVault] = useState(null);
+  const [assets, setAssets] = useState([]);
+
+  // Initialize Firebase collections and check user
+  useEffect(() => {
+    const initializeApp = async () => {
+      await initializeCollections();
+      
+      const walletAddress = getCurrentUser();
+      if (walletAddress) {
+        setUser({ walletAddress });
+        let vaults = await getUserVaults(walletAddress);
+        
+        if (vaults.length === 0) {
+          const newVault = await createVault(walletAddress);
+          vaults = [newVault];
+        }
+        
+        if (vaults.length > 0) {
+          setVault(vaults[0]);
+          setAssets(vaults[0].assets || []);
+        }
+        setScreen('dashboard');
+      }
+    };
+    initializeApp();
+  }, []);
 
   const go = (s, meta = {}) => {
     if (meta.walletName) setWalletName(meta.walletName);
-    if (meta.txAction)   setLastTxAction(meta.txAction);
+    if (meta.txAction) setLastTxAction(meta.txAction);
+    if (meta.user) setUser(meta.user);
+    if (meta.vault) setVault(meta.vault);
     setScreen(s);
   };
-
-  const addAsset = (asset) => setAssets(prev => [...prev, asset]);
 
   return (
     <div style={{
@@ -41,9 +65,9 @@ export default function App() {
         {screen === 'landing'     && <LandingScreen    go={go} />}
         {screen === 'wallet'      && <WalletScreen     go={go} />}
         {screen === 'connecting'  && <ConnectingScreen go={go} walletName={walletName} />}
-        {screen === 'dashboard'   && <DashboardScreen  go={go} assets={assets} />}
-        {screen === 'addAsset'    && <AddAssetScreen   go={go} addAsset={addAsset} />}
-        {screen === 'beneficiary' && <BeneficiaryScreen go={go} />}
+        {screen === 'dashboard'   && <DashboardScreen  go={go} assets={assets} vault={vault} user={user} />}
+        {screen === 'addAsset'    && <AddAssetScreen   go={go} vault={vault} />}
+        {screen === 'beneficiary' && <BeneficiaryScreen go={go} vault={vault} />}
         {screen === 'txSuccess'   && <TxSuccessScreen  go={go} action={lastTxAction} />}
       </div>
     </div>
