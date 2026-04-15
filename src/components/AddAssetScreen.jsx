@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { Nav, BackBtn, Input, Select, BtnPrimary, ScrollContent, SectionLabel } from './UI';
+import { addAsset as firebaseAddAsset } from '../services/firebaseService';
 
 const ASSET_TYPES = [
   'Cryptocurrency (ERC-20)',
@@ -22,7 +23,7 @@ const PRESETS = [
   { sym: 'USDC', label: 'USD Coin', addr: '0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48' },
 ];
 
-export default function AddAssetScreen({ go, addAsset }) {
+export default function AddAssetScreen({ go, vault }) {
   const [assetType, setAssetType] = useState(ASSET_TYPES[0]);
   const [address, setAddress]   = useState('0x2260FAC5E5542a773Aa44fBCfeDf7C193bc2C599');
   const [amount, setAmount]     = useState('0.25');
@@ -31,21 +32,31 @@ export default function AddAssetScreen({ go, addAsset }) {
 
   const estUsd = parseFloat(amount || 0) * 36800;
 
-  const handleConfirm = () => {
+  const handleConfirm = async () => {
     setSubmitting(true);
-    setTimeout(() => {
+    try {
       const newAsset = {
         id: Date.now(),
+        type: assetType,
+        address,
+        amount,
+        trigger,
         sym: assetType.includes('NFT') ? 'NFT' : assetType.includes('Stable') ? 'USDC' : 'ETH',
         name: assetType.includes('NFT') ? 'New NFT Asset' : assetType.includes('Stable') ? 'Stablecoin' : 'New Token',
-        amount: `${amount} units`,
+        amountDisplay: `${amount} units`,
         usd: `$${estUsd.toLocaleString('en-US', { maximumFractionDigits: 0 })}`,
-        pct: '+0.0%', up: true,
-        bg: 'rgba(124,58,237,.15)', color: '#a78bfa',
+        pct: '+0.0%', 
+        up: true,
+        bg: 'rgba(124,58,237,.15)', 
+        color: '#a78bfa',
       };
-      addAsset(newAsset);
+      
+      await firebaseAddAsset(vault.id, newAsset);
       go('txSuccess', { txAction: 'Asset locked in vault' });
-    }, 600);
+    } catch (error) {
+      console.error('Error adding asset:', error);
+      setSubmitting(false);
+    }
   };
 
   return (
