@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { Nav, BackBtn, SectionLabel, ScrollContent } from './UI';
+import { loginWithWallet } from '../services/firebaseService';
 
 const wallets = [
   { id: 'MetaMask',       icon: '🦊', bg: 'rgba(246,133,27,.15)', desc: 'Browser extension wallet' },
@@ -32,11 +33,20 @@ export default function WalletScreen({ go }) {
 
 function WalletOption({ wallet, go }) {
   const [hover, setHover] = useState(false);
+  
+  const handleConnect = async () => {
+    const mockAddress = '0x' + Array(40).fill(0).map(() => 
+      Math.floor(Math.random() * 16).toString(16)).join('');
+    
+    await loginWithWallet(mockAddress);
+    go('connecting', { walletName: wallet.id, user: { walletAddress: mockAddress } });
+  };
+  
   return (
     <div
       onMouseEnter={() => setHover(true)}
       onMouseLeave={() => setHover(false)}
-      onClick={() => go('connecting', { walletName: wallet.id })}
+      onClick={handleConnect}
       style={{
         background: hover ? 'var(--cv-card-hover)' : 'var(--cv-card)',
         border: `1px solid ${hover ? 'rgba(0,229,160,.3)' : 'var(--cv-border)'}`,
