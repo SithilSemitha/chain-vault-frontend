@@ -1,5 +1,6 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Nav, BackBtn, SectionLabel, BtnPrimary, ScrollContent } from './UI';
+import { addBeneficiary as firebaseAddBeneficiary, removeBeneficiary as firebaseRemoveBeneficiary, updateBeneficiary as firebaseUpdateBeneficiary } from '../services/firebaseService';
 
 const INITIAL_BENE = [
   { id: 1, name: 'Sara Ramirez', addr: '0x4ab…c3d1', pct: 65, initials: 'SR', bg: 'rgba(0,229,160,.12)', color: 'var(--cv-accent)' },
@@ -13,31 +14,59 @@ const TRIGGERS = [
   { id: 'oracle',     label: 'Chainlink oracle',     desc: 'Trigger on verified real-world event' },
 ];
 
-export default function BeneficiaryScreen({ go }) {
-  const [benes, setBenes]       = useState(INITIAL_BENE);
+export default function BeneficiaryScreen({ go, vault }) {
+  const [benes, setBenes]       = useState(vault?.beneficiaries || INITIAL_BENE);
   const [trigger, setTrigger]   = useState('inactivity');
-  const [editing, setEditing]   = useState(null);
   const [saving, setSaving]     = useState(false);
+  
+  useEffect(() => {
+    if (vault?.beneficiaries) {
+      setBenes(vault.beneficiaries);
+    }
+  }, [vault]);
 
   const totalPct = benes.reduce((s, b) => s + b.pct, 0);
 
-  const handleSave = () => {
+  const handleSave = async () => {
     setSaving(true);
-    setTimeout(() => go('txSuccess', { txAction: 'Beneficiary configuration saved on-chain' }), 700);
+    try {
+      await new Promise(resolve => setTimeout(resolve, 700));
+      go('txSuccess', { txAction: 'Beneficiary configuration saved on-chain' });
+    } catch (error) {
+      console.error('Error saving beneficiaries:', error);
+      setSaving(false);
+    }
   };
 
-  const removeBene = (id) => setBenes(prev => prev.filter(b => b.id !== id));
+  const removeBene = async (id) => {
+    try {
+      await firebaseRemoveBeneficiary(vault.id, id);
+      setBenes(prev => prev.filter(b => b.id !== id));
+    } catch (error) {
+      console.error('Error removing beneficiary:', error);
+    }
+  };
 
-  const addBene = () => {
+  const addBene = async () => {
     const colors = [
       { bg: 'rgba(245,158,11,.15)', color: '#f59e0b' },
       { bg: 'rgba(239,68,68,.15)',  color: '#ef4444' },
     ];
     const c = colors[benes.length % colors.length];
-    setBenes(prev => [...prev, {
-      id: Date.now(), name: 'New Beneficiary', addr: '0x000…0000',
-      pct: Math.max(0, 100 - totalPct), initials: 'NB', ...c,
-    }]);
+    const newBeneficiary = {
+      id: Date.now(), 
+      name: 'New Beneficiary', 
+      addr: '0x000…0000',
+      pct: Math.max(0, 100 - totalPct), 
+      initials: 'NB', 
+      ...c,
+    };
+    try {
+      await firebaseAddBeneficiary(vault.id, newBeneficiary);
+      setBenes(prev => [...prev, newBeneficiary]);
+    } catch (error) {
+      console.error('Error adding beneficiary:', error);
+    }
   };
 
   return (
@@ -69,7 +98,10 @@ export default function BeneficiaryScreen({ go }) {
         <SectionLabel>Heirs ({benes.length} of 5 slots)</SectionLabel>
 
         {benes.map(b => (
-          <BeneCard key={b.id} bene={b} onRemove={removeBene} onEditPct={(id, p) => setBenes(prev => prev.map(x => x.id === id ? { ...x, pct: Number(p) } : x))} />
+          <BeneCard key={b.id} bene={b} vault={vault} onRemove={removeBene} onEditPct={(id, p) => {
+            setBenes(prev => prev.map(x => x.id === id ? { ...x, pct: Number(p) } : x));
+            firebaseUpdateBeneficiary(vault.id, id, { pct: Number(p) }).catch(e => console.error('Error updating percentage:', e));
+          }} />
         ))}
 
         {benes.length < 5 && (
